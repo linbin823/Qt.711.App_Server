@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ModbusMasterProtocolDriverUI</class>
+ <widget class="QWidget" name="ModbusMasterProtocolDriverUI">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <widget class="QWidget" name="gridLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>381</width>
+     <height>281</height>
+    </rect>
+   </property>
+   <layout class="QGridLayout" name="gridLayout">
+    <property name="leftMargin">
+     <number>10</number>
+    </property>
+    <property name="topMargin">
+     <number>10</number>
+    </property>
+    <property name="rightMargin">
+     <number>10</number>
+    </property>
+    <property name="bottomMargin">
+     <number>10</number>
+    </property>
+    <item row="1" column="1">
+     <widget class="QPushButton" name="pbClose">
+      <property name="text">
+       <string>关闭</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <spacer name="horizontalSpacer">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="0" column="0" colspan="2">
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="paraTab">
+       <attribute name="title">
+        <string>Tab 1</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_2">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>9</y>
+          <width>331</width>
+          <height>193</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <property name="leftMargin">
+          <number>10</number>
+         </property>
+         <property name="topMargin">
+          <number>10</number>
+         </property>
+         <property name="rightMargin">
+          <number>10</number>
+         </property>
+         <property name="bottomMargin">
+          <number>10</number>
+         </property>
+         <item row="3" column="2" colspan="2">
+          <widget class="QLabel" name="lbLastError">
+           <property name="text">
+            <string>最后错误：无</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2" colspan="2">
+          <widget class="QLabel" name="lbState">
+           <property name="text">
+            <string>状态</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0" colspan="4">
+          <widget class="QTableView" name="tv_parameters"/>
+         </item>
+         <item row="2" column="0">
+          <widget class="QPushButton" name="pbStart">
+           <property name="text">
+            <string>启动</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QPushButton" name="pbStop">
+           <property name="text">
+            <string>停止</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0" colspan="4">
+          <widget class="QLabel" name="lbInterface">
+           <property name="text">
+            <string>参数设置</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="aboutTab">
+       <property name="maximumSize">
+        <size>
+         <width>16777211</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <attribute name="title">
+        <string>Tab 2</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_3">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>331</width>
+          <height>206</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <property name="leftMargin">
+          <number>10</number>
+         </property>
+         <property name="topMargin">
+          <number>10</number>
+         </property>
+         <property name="rightMargin">
+          <number>10</number>
+         </property>
+         <property name="bottomMargin">
+          <number>10</number>
+         </property>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>驱动名称</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>描述</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0" colspan="2">
+          <widget class="QTextBrowser" name="tbDescription"/>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>版本号</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="lbName">
+           <property name="text">
+            <string>TextLabel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLabel" name="lbVersion">
+           <property name="text">
+            <string>TextLabel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>厂商名称</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="lbManufacturer">
+           <property name="text">
+            <string>TextLabel</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
