@@ -289,18 +289,11 @@ private slots:
     QList<QModbusDataUnit> _prepareDataUnit(int dataType, const QList<TagAddress *>& list) const;
     /*!
      * \brief _readValues
-     * read data from DataUnit unit to QList<TagAddress *> list
+     * read data from DataUnit unit to TagAddress t
      * \param unit
      * \param list
      */
     void _readValues(const QList<TagAddress *>& list, const QModbusDataUnit& unit);
-    /*!
-     * \brief _writeValues
-     * write data from QList<TagAddress *> list to DataUnit unit
-     * \param unit
-     * \param list
-     */
-    void _writeValues(const QList<TagAddress *>& list, QModbusDataUnit &unit);
     /*!
      * \brief _readValue
      * read value from QModbusDataUnit unit to TagAddress t
@@ -319,9 +312,9 @@ private slots:
     void _writeValue(TagAddress *t, QModbusDataUnit& unit, uint index);
     /*!
      * \brief _isDWord(Double Word)
-     * \param addr
+     * \param t
      * \return if t is 32bit, then return true
      */
-    bool _isDWord(const QString& addr)const;
+    bool _isDWord(TagAddress *t)const;
 };
 #endif // MODBUSMASTERPROTOCOLDRIVER_H

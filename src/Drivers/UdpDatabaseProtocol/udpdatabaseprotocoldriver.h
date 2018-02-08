@@ -101,6 +101,8 @@ private:
     char _stationID;
     enum_states _state;
 
+    bool firstLoop = true;
+
     QTimer *_pWatchDogTimer;
     QList<TagAddress*> _relatedTags;
 

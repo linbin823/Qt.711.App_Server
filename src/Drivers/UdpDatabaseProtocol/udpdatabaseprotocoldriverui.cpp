@@ -63,7 +63,7 @@ void UdpDatabaseProtocolDriverUI::on_pbStart_clicked()
         ui->lbLastError->setText("IP地址错误");
     }
     bool ok;
-    qint16 hport = ui->leLocalPort->text().toInt(&ok);
+    qint16 hport = ui->leHostPort->text().toInt(&ok);
     if(!ok || hport ==0){
         ui->lbLastError->setText("端口错误");
     }
@@ -75,7 +75,7 @@ void UdpDatabaseProtocolDriverUI::on_pbStart_clicked()
     ret = _pDriver->setUdpDatabaseAddress(haddr,hport,lport);
     if(ret!=0) return;
     qint16 stationid = ui->leStationID->text().toInt(&ok);
-    //ret = _pDriver->setSMDERIMStation(stationid);
+    ret = _pDriver->setSMDERIMStation(stationid);
     if(ret!=0) return;
 
     //to avoid create object in this ui thread

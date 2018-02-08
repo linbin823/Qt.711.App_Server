@@ -9,7 +9,7 @@
 
 UdpDatabaseProtocolDriver::UdpDatabaseProtocolDriver(QObject *parent) : iDriver(parent),
     _udpdatabaseAddress( QHostAddress("127.0.0.1")),
-    _stationID(0xFA),
+    _stationID(0x05),
     _port(5656),
     _pUdpSocket(nullptr),
     _pUI(nullptr),
@@ -104,6 +104,7 @@ int UdpDatabaseProtocolDriver::start(){
         else{
             connect(_pUdpSocket, SIGNAL(readyRead()), this, SLOT(_processPendingDatagrams()));
         }
+        firstLoop = true;
     }
     if(_pWatchDogTimer!=nullptr){
         _pWatchDogTimer->stop();
@@ -114,16 +115,6 @@ int UdpDatabaseProtocolDriver::start(){
         _pWatchDogTimer->setInterval(100 * 1000);
         connect(_pWatchDogTimer,SIGNAL(timeout()),this,SLOT(_watchDogTimeOver()));
         _pWatchDogTimer->start();
-    }
-    if(_scheduleTimer!=nullptr){
-        _scheduleTimer->stop();
-        _scheduleTimer->deleteLater();
-    }else{
-        _scheduleTimer = new QTimer(this);
-        _scheduleTimer->setSingleShot(false);
-        _scheduleTimer->setInterval(500);
-        connect(_scheduleTimer,&QTimer::timeout,this,&UdpDatabaseProtocolDriver::_scheduleProcess);
-        _scheduleTimer->start();
     }
 
     _setState(STAT_RUN);
@@ -289,7 +280,8 @@ void UdpDatabaseProtocolDriver::_scheduleProcess()
     datagram[3] = 0x00;
     datagram[4] = 0x00;
     i = 5;
-    if(_relatedTags.size()!=0 && !_hostAddress.isNull() ){
+    if(_relatedTags.size()!=0)//&& _hostAddress != nullptr)
+    {
         //prepare data
         foreach(TagAddress* t, _relatedTags){
             if(t->RWStrategy == iTagInfo::RWS_DISABLE)   continue;
@@ -307,7 +299,7 @@ void UdpDatabaseProtocolDriver::_scheduleProcess()
                 datagram.append(char(0x04));
                 datagram.append(char(0x00));
                 //datagram.append(0x00);//quality byte:0-ok,1-error;
-                temp  =t->tagInfo->value().toUInt();
+                temp  = 5108;//t->tagInfo->value().toUInt();
                 temp1  =(char*)&temp;
                 datagram.append(*(temp1+3));
                 datagram.append(*(temp1+2));
@@ -327,14 +319,14 @@ void UdpDatabaseProtocolDriver::_scheduleProcess()
                 break;
             }
         }
-        qint16 len = datagram.size() - 3;
+        qint16 len = datagram.size() - 5;
         datagram[3] = (len & 0xff00)>>8;
         datagram[4] = len & 0xff;
         for(int i=1;i<len;i++) {
             dmh += datagram[i];
         }
 
-        datagram.append(dmh & 0xff).append((dmh & 0xff00)>>8);
+        datagram.append(dmh & 0x00ff);
         datagram.append(char(0x0D));
         //write data
         _pUdpSocket->writeDatagram(datagram.data(),datagram.size(),_hostAddress,_hostPort);
@@ -347,7 +339,7 @@ void UdpDatabaseProtocolDriver::_processPendingDatagrams()
         emit dataReceived();//accept per UDP package
         QByteArray datagram;
         datagram.resize(_pUdpSocket->pendingDatagramSize());
-        int count = _pUdpSocket->readDatagram(datagram.data(),datagram.size(),&_hostAddress,&_hostPort);//,&_hostAddress,&_hostPort
+        int count = _pUdpSocket->readDatagram(datagram.data(),datagram.size(),nullptr,&_hostPort);//,&_hostAddress,&_hostPort
 
         if ((datagram[0] == 0x53)
                 && (count >= 7)
@@ -356,6 +348,21 @@ void UdpDatabaseProtocolDriver::_processPendingDatagrams()
             case 1:
                 _pUdpSocket->writeDatagram(datagram.data(),datagram.size(),_hostAddress,_hostPort);
                 _pWatchDogTimer->start();
+
+                if(firstLoop == true)
+                {
+                    if(_scheduleTimer!=nullptr){
+                        _scheduleTimer->stop();
+                        _scheduleTimer->deleteLater();
+                    }else{
+                        _scheduleTimer = new QTimer(this);
+                        _scheduleTimer->setSingleShot(false);
+                        _scheduleTimer->setInterval(500);
+                        connect(_scheduleTimer,&QTimer::timeout,this,&UdpDatabaseProtocolDriver::_scheduleProcess);
+                        _scheduleTimer->start();
+                    }
+                    firstLoop = false;
+                }
 
                 break;
             default:

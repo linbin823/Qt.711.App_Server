@@ -329,7 +329,9 @@ void ModbusMasterProtocolDriver::_scheduleProcess(){
     if(_coils.size()!=0){
         foreach (QModbusDataUnit unit, _coilsDataUnit) {
             //prepare data
-            _writeValues( _coils, unit);
+            foreach(TagAddress* t, _coils){
+                _writeValue(t, unit, ( _addressOffset( t->address ) - unit.startAddress() ));
+            }
             //write data
             if (auto *reply = _pModbusDevice->sendWriteRequest(unit, _parameters[SlaveStationID].toInt()) ){
                 if (!reply->isFinished()) {
@@ -468,11 +470,6 @@ int  ModbusMasterProtocolDriver::_addressArea(const QString& addr)const{
 int  ModbusMasterProtocolDriver::_addressOffset(const QString& addr)const{
     QString offsetString = addr;
     offsetString.remove(0,1);
-    if(addr.endsWith("+")){
-        offsetString.chop(1);
-    }else{
-        return false;
-    }
     int offset = offsetString.toInt();
     if(_parameters.value(DataAddressing) == OneBased) offset--;
     return offset;
@@ -535,7 +532,6 @@ QList<QModbusDataUnit> ModbusMasterProtocolDriver::_prepareDataUnit(int dataType
 //get start index
     int startIndex;
     for (startIndex = 0; startIndex<list.size(); ++startIndex){
-        //each data type has a acceptable RWStrategy, return true if a TagAddress meets the requirement.
         if( _dataQualifier(dataType, list.at(startIndex)) ) break;
     }
     if(startIndex == list.size()) return ret;
@@ -579,13 +575,13 @@ QList<QModbusDataUnit> ModbusMasterProtocolDriver::_prepareDataUnit(int dataType
     case QModbusDataUnit::InputRegisters:
     case QModbusDataUnit::HoldingRegisters:{
         int currentOffset;
-        bool isDWord = false;
+        bool doubleRegs = false;
         for (int i = (startIndex+1); i<list.size(); ++i){
             if( _dataQualifier(dataType, list.at(i)) ){
                 //condition 1: must qualified
                 currentOffset = _addressOffset( list.at(i)->address );
                 if( //condition 2: address continueous
-                    (((!isDWord) && currentOffset<=(lastOffset +1)) || (isDWord && currentOffset<=(lastOffset +2)))
+                    (((!doubleRegs) && currentOffset<=(lastOffset +1)) || (doubleRegs && currentOffset<=(lastOffset +2)))
                         &&
                     //condition 3: not reach max number per message
                     maxNumberPerMessage >= (lastOffset - startOffset + 1) ){
@@ -594,14 +590,14 @@ QList<QModbusDataUnit> ModbusMasterProtocolDriver::_prepareDataUnit(int dataType
 
                     //feature for registers: 32bit length data could combine with two continueous 16bit registers!
                     //update last tagAddress's condition
-                    isDWord = _isDWord( list.at(i)->address );
+                    doubleRegs = _isDWord(list.at(i));
                     continue;
                 }else{
                     //seperate unit beacuse:
                     //address not continueous or
                     //max package length reached!
                     unit.setStartAddress(startOffset);
-                    if(isDWord){
+                    if(doubleRegs){
                         unit.setValueCount(lastOffset - startOffset + 2);
                     }else{
                         unit.setValueCount(lastOffset - startOffset + 1);
@@ -612,14 +608,14 @@ QList<QModbusDataUnit> ModbusMasterProtocolDriver::_prepareDataUnit(int dataType
 
                     //feature for registers: 32bit length data could combine with two continueous 16bit registers!
                     //update last tagAddress's condition
-                    isDWord = _isDWord( list.at(i)->address );
+                    doubleRegs = _isDWord(list.at(i));
                     continue;
                 }
             }
         }
         //finish last unit
         unit.setStartAddress(startOffset);
-        if(isDWord){
+        if(doubleRegs){
             unit.setValueCount(lastOffset - startOffset + 2);
         }else{
             unit.setValueCount(lastOffset - startOffset + 1);
@@ -676,56 +672,12 @@ void ModbusMasterProtocolDriver::_readValues(const QList<TagAddress *> &list, co
     }
 }
 
-void ModbusMasterProtocolDriver::_writeValues(const QList<TagAddress *>& list, QModbusDataUnit& unit){
-    int startAddress = unit.startAddress();
-    for(uint index=0; index<unit.valueCount(); index++){
-        int lastSpan = list.size() /2;
-        int pos = list.size() / 2;
-        while(1){
-            TagAddress * t = list.at(pos);
-            if( _addressOffset(t->address) == (startAddress+index) ){
-                //found!
-                _writeValue(t, unit, index);
-                //look forward for same address
-                for(int i=1; (pos+i)<list.size();i++){
-                    t = list.at(pos+i);
-                    if( _addressOffset(t->address) == (startAddress+index) ){
-                        _writeValue(t, unit, index);
-                        continue;
-                    }
-                    break;
-                }
-                //look backward for same address
-                for(int i=1; (pos-i)>=0  ;i++){
-                    t = list.at(pos+i);
-                    if( _addressOffset(t->address) == (startAddress+index) ){
-                        _writeValue(t, unit, index);
-                        continue;
-                    }
-                    break;
-                }
-                break;
-            }else if( _addressOffset(t->address) > (startAddress+index) ){
-                if(lastSpan == 0) break;
-                lastSpan /= 2;
-                if(lastSpan == 0) pos -= 1;
-                else pos -= lastSpan;
-            }else if( _addressOffset(t->address) < (startAddress+index)){
-                if(lastSpan == 0) break;
-                lastSpan /= 2;
-                if(lastSpan == 0) pos += 1;
-                else pos += lastSpan;
-            }
-        }
-    }
-}
-
 void ModbusMasterProtocolDriver::_readValue(TagAddress *t, const QModbusDataUnit& unit, uint index){
-    if(index>=unit.valueCount()) return;
+    if (index>=unit.valueCount()) return;
 
     quint16 valueSmallAddr = unit.value(index);
     quint16 valueBigAddr;
-    if((index+1)>=unit.valueCount())
+    if ((index+1) >= unit.valueCount())
         valueBigAddr = 0;
     else
         valueBigAddr = unit.value(index+1);
@@ -734,7 +686,7 @@ void ModbusMasterProtocolDriver::_readValue(TagAddress *t, const QModbusDataUnit
     case iTagInfo::TYPE_INT32:
     case iTagInfo::TYPE_UINT32:
     {
-        if(_parameters[DWordMapping] == BigEnd)
+        if (_parameters[DWordMapping] == BigEnd)
             t->tagInfo->updatevalue( (quint32)((valueSmallAddr&0xFFFF)<<16) + (quint32)(valueBigAddr&0xFFFF) );
         else
             t->tagInfo->updatevalue( (quint32)((valueBigAddr&0xFFFF)<<16) + (quint32)(valueSmallAddr&0xFFFF) );
@@ -775,32 +727,47 @@ void ModbusMasterProtocolDriver::_writeValue(TagAddress *t, QModbusDataUnit& uni
         return;
     }
 
-
-
     switch (t->tagInfo->type()) {
-//    case iTagInfo::TYPE_INT32:
-//    case iTagInfo::TYPE_UINT32:
+    case iTagInfo::TYPE_INT32:
+    case iTagInfo::TYPE_UINT32:
+    {
+        quint32 data = value.toUInt();
+        if(_parameters[DWordMapping] == BigEnd){
+            unit.setValue(index,   (quint16)((data&0xFF00)>>16));
+            unit.setValue(index+1, (quint16)(data&0xFF));
+        }else{
+            unit.setValue(index,   (quint16)(data&0xFF));
+            unit.setValue(index+1, (quint16)((data&0xFF00)>>16));
+        }
+        break;
+    }
+//    case iTagInfo::TYPE_INT16:
 //    {
-//        quint32 data = value.toUInt();
+//        qint16 value = t->tagInfo->value().toInt();
 //        if(_parameters[DWordMapping] == BigEnd){
-//            unit.setValue(index,   (quint16)((data&0xFF00)>>16));
-//            unit.setValue(index+1, (quint16)(data&0x00FF));
+//            unit.setValue(index,   (quint16)((value&0xFF00)>>16));
+//            unit.setValue(index+1, (quint16)(value&0xFF));
 //        }else{
-//            unit.setValue(index,   (quint16)(data&0x00FF));
-//            unit.setValue(index+1, (quint16)((data&0xFF00)>>16));
+//            unit.setValue(index,   (quint16)(value&0xFF));
+//            unit.setValue(index+1, (quint16)((value&0xFF00)>>16));
 //        }
 //        break;
 //    }
+//    case iTagInfo::TYPE_UINT16:
+//    {
+//        quint16 value = t->tagInfo->value().toUInt();
+//        unit.setValue(index, value);
+//        break;
+//    }
     case iTagInfo::TYPE_FLOAT:
-    case iTagInfo::TYPE_DOUBLE:
     {
         float data = value.toFloat();
         quint32 *pValue = (quint32*)&data;
         if(_parameters[DWordMapping] == BigEnd){
             unit.setValue(index,   (quint16)((*pValue&0xFF00)>>16));
-            unit.setValue(index+1, (quint16)(*pValue&0x00FF));
+            unit.setValue(index+1, (quint16)(*pValue&0xFF));
         }else{
-            unit.setValue(index,   (quint16)(*pValue&0x00FF));
+            unit.setValue(index,   (quint16)(*pValue&0xFF));
             unit.setValue(index+1, (quint16)((*pValue&0xFF00)>>16));
         }
         break;
@@ -813,8 +780,10 @@ void ModbusMasterProtocolDriver::_writeValue(TagAddress *t, QModbusDataUnit& uni
     }
 }
 
-bool  ModbusMasterProtocolDriver::_isDWord(const QString& addr)const{
-    if(addr.endsWith("+")){
+bool ModbusMasterProtocolDriver::_isDWord(TagAddress* t)const{
+    if( (t->tagInfo->type() == iTagInfo::TYPE_INT32) ||
+        (t->tagInfo->type() == iTagInfo::TYPE_UINT32) ||
+        (t->tagInfo->type() == iTagInfo::TYPE_FLOAT) ){
         return true;
     }else{
         return false;
